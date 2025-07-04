@@ -34,19 +34,36 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.code.quizzo.viewmodel.QuizViewModel
 import kotlinx.coroutines.delay
 
 @Composable
-fun QuizScreen(viewModel: QuizViewModel = hiltViewModel()) {
-    val questions by viewModel.quizQuestions.observeAsState(emptyList())
-    var currentIndex by remember { mutableStateOf(0) }
+fun QuizScreen(
+    viewModel: QuizViewModel = hiltViewModel(),
+    onQuizFinished: () -> Unit
+) {
+    val totalQuestions = viewModel.quizQuestions.value?.size ?: 0
+    val currentQuestion = viewModel.getCurrentQuestion()
+
     var selectedAnswerIndex by remember { mutableStateOf<Int?>(null) }
     var isAnswered by remember { mutableStateOf(false) }
+    var shouldNavigateToResult by remember { mutableStateOf(false) }
 
-    val question = questions.getOrNull(currentIndex)
 
-    if (question == null) {
+    LaunchedEffect(shouldNavigateToResult) {
+        if (shouldNavigateToResult) {
+            onQuizFinished()
+        }
+    }
+
+    if (viewModel.currentIndex >= totalQuestions) {
+        // fallback, just in case
+        onQuizFinished()
+        return
+    }
+
+    if (currentQuestion == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
@@ -55,15 +72,11 @@ fun QuizScreen(viewModel: QuizViewModel = hiltViewModel()) {
 
     LaunchedEffect(isAnswered) {
         if (isAnswered) {
-            delay(600)
-            if (currentIndex < questions.lastIndex) {
-                currentIndex++
-            }
+            delay(800)
             selectedAnswerIndex = null
             isAnswered = false
         }
     }
-
 
     Column(
         modifier = Modifier
@@ -74,13 +87,13 @@ fun QuizScreen(viewModel: QuizViewModel = hiltViewModel()) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "Question ${currentIndex + 1} of ${questions.size}",
+            text = "Question ${viewModel.currentIndex + 1} of $totalQuestions",
             color = Color.White,
             fontSize = 16.sp
         )
 
         LinearProgressIndicator(
-            progress = (currentIndex + 1).toFloat() / questions.size,
+            progress = (viewModel.currentIndex + 1).toFloat() / totalQuestions,
             modifier = Modifier.fillMaxWidth(),
             color = Color.White
         )
@@ -88,7 +101,7 @@ fun QuizScreen(viewModel: QuizViewModel = hiltViewModel()) {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = question.question,
+            text = currentQuestion.question,
             color = Color.White,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
@@ -96,13 +109,14 @@ fun QuizScreen(viewModel: QuizViewModel = hiltViewModel()) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        question.options.forEachIndexed { index, option ->
-            val isCorrect = index == question.correctOptionIndex
+        currentQuestion.options.forEachIndexed { index, option ->
+            val isCorrect = index == currentQuestion.correctOptionIndex
             val isSelected = index == selectedAnswerIndex
 
             val backgroundColor = when {
                 isAnswered && isSelected && isCorrect -> Color(0xFF4CAF50)
                 isAnswered && isSelected && !isCorrect -> Color(0xFFF44336)
+                isAnswered && !isSelected && isCorrect -> Color(0xFF4CAF50)
                 else -> Color.DarkGray
             }
 
@@ -111,6 +125,10 @@ fun QuizScreen(viewModel: QuizViewModel = hiltViewModel()) {
                     if (!isAnswered) {
                         selectedAnswerIndex = index
                         isAnswered = true
+                        val isLast = viewModel.submitAnswer(isCorrect)
+                        if (isLast) {
+                            shouldNavigateToResult = true
+                        }
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = backgroundColor),
@@ -128,10 +146,13 @@ fun QuizScreen(viewModel: QuizViewModel = hiltViewModel()) {
 
         Button(
             onClick = {
-                if (currentIndex < questions.lastIndex) {
-                    currentIndex++
+                if (!isAnswered) {
                     selectedAnswerIndex = null
-                    isAnswered = false
+                    isAnswered = true
+                    val isLast = viewModel.submitAnswer(false)
+                    if (isLast) {
+                        shouldNavigateToResult = true
+                    }
                 }
             },
             colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
@@ -144,3 +165,6 @@ fun QuizScreen(viewModel: QuizViewModel = hiltViewModel()) {
         }
     }
 }
+
+
+

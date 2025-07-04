@@ -24,6 +24,16 @@ class QuizViewModel @Inject constructor(
     private val _quizState = MutableLiveData<ApiResponse<List<QuizQuestion>>>()
     val quizState: LiveData<ApiResponse<List<QuizQuestion>>> = _quizState
 
+    private var _currentIndex = 0
+    val currentIndex: Int get() = _currentIndex
+
+    private var _correctAnswers = 0
+    val correctAnswers: Int get() = _correctAnswers
+
+    private var _currentStreak = 0
+    private var _highestStreak = 0
+    val highestStreak: Int get() = _highestStreak
+
     init {
         fetchQuestions()
     }
@@ -40,6 +50,36 @@ class QuizViewModel @Inject constructor(
                 _quizState.value = ApiResponse.Error(e.message)
             }
         }
+    }
+
+    fun submitAnswer(isCorrect: Boolean): Boolean {
+        if (isCorrect) {
+            _correctAnswers++
+            _currentStreak++
+            _highestStreak = maxOf(_highestStreak, _currentStreak)
+        } else {
+            _currentStreak = 0
+        }
+
+        _currentIndex++
+
+        return isLastQuestion()
+    }
+
+    fun getCurrentQuestion(): QuizQuestion? {
+        return _quizQuestions.value?.getOrNull(_currentIndex)
+    }
+
+    fun isLastQuestion(): Boolean {
+        val total = _quizQuestions.value?.size ?: 0
+        return _currentIndex >= total
+    }
+
+    fun resetQuiz() {
+        _currentIndex = 0
+        _correctAnswers = 0
+        _currentStreak = 0
+        _highestStreak = 0
     }
 }
 
