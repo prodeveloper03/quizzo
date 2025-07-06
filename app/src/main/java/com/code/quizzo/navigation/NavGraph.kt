@@ -1,12 +1,17 @@
 package com.code.quizzo.navigation
 
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.code.quizzo.commonutil.ApiResponse
@@ -15,23 +20,39 @@ import com.code.quizzo.ui.quizscreen.QuizScreen
 import com.code.quizzo.ui.resultscreen.ResultScreen
 import com.code.quizzo.ui.splashscreen.SplashScreen
 import com.code.quizzo.viewmodel.QuizViewModel
+import com.google.accompanist.navigation.animation.AnimatedNavHost
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun NavGraph(navController: NavHostController) {
     val viewModel: QuizViewModel = hiltViewModel()
     val quizState by viewModel.quizState.observeAsState(ApiResponse.Loading)
 
-    NavHost(navController = navController, startDestination = "splash") {
+    AnimatedNavHost(
+        navController = navController,
+        startDestination = "splash",
+        enterTransition = {
+            slideInHorizontally(initialOffsetX = { 1000 }) + fadeIn(animationSpec = tween(800))
+        },
+        exitTransition = {
+            slideOutHorizontally(targetOffsetX = { -1000 }) + fadeOut(animationSpec = tween(800))
+        },
+        popEnterTransition = {
+            slideInHorizontally(initialOffsetX = { -1000 }) + fadeIn(animationSpec = tween(800))
+        },
+        popExitTransition = {
+            slideOutHorizontally(targetOffsetX = { 1000 }) + fadeOut(animationSpec = tween(800))
+        }
+    ) {
 
         // Splash Screen
         composable("splash") {
             SplashScreen(
-                quizState = quizState,
                 onNavigateToHome = {
                     navController.navigate("home") {
                         popUpTo("splash") { inclusive = true }
                     }
-                }
+                },
             )
         }
 
@@ -40,6 +61,10 @@ fun NavGraph(navController: NavHostController) {
             HomeScreen(
                 onStartQuiz = {
                     navController.navigate("quiz")
+                },
+                quizState = quizState,
+                onRetry = {
+                    viewModel.fetchQuestions()
                 }
             )
         }
@@ -54,6 +79,9 @@ fun NavGraph(navController: NavHostController) {
                     ) {
                         popUpTo("quiz") { inclusive = true }
                     }
+                },
+                onExitQuiz = {
+                    navController.popBackStack("home", inclusive = false)
                 }
             )
         }
@@ -73,16 +101,8 @@ fun NavGraph(navController: NavHostController) {
 
             ResultScreen(
                 viewModel = viewModel,
-                onRestart = {
-                    viewModel.resetQuiz()
-                    navController.navigate("home") {
-                        popUpTo("result") { inclusive = true }
-                    }
-                },
-                onClose = {
-                    navController.navigate("home"){
-                        popUpTo("result") { inclusive = true }
-                    }
+                onGoToHome = {
+                    navController.popBackStack("home", inclusive = false)
                 }
             )
         }

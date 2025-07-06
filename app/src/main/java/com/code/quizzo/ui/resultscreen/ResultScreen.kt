@@ -1,5 +1,6 @@
 package com.code.quizzo.ui.resultscreen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,24 +29,33 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.code.quizzo.viewmodel.QuizViewModel
+
+
 @Composable
 fun ResultScreen(
     viewModel: QuizViewModel,
-    onRestart: () -> Unit,
-    onClose: () -> Unit
+    onGoToHome: () -> Unit
 ) {
     val correctAnswers = viewModel.correctAnswers
     val totalQuestions = viewModel.quizQuestions.value?.size ?: 0
     val highestStreak = viewModel.highestStreak
+
+
+    BackHandler {
+        viewModel.resetQuiz()
+        onGoToHome()
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF101010))
     ) {
-        // Close Icon (Top Start)
         IconButton(
-            onClick = onClose,
+            onClick = {
+                viewModel.resetQuiz()
+                onGoToHome()
+            },
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
@@ -57,7 +67,6 @@ fun ResultScreen(
             )
         }
 
-        // Main Content
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -65,7 +74,6 @@ fun ResultScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
@@ -108,7 +116,7 @@ fun ResultScreen(
             Button(
                 onClick = {
                     viewModel.resetQuiz()
-                    onRestart()
+                    onGoToHome()
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE5F0FF)),
                 shape = RoundedCornerShape(50),
@@ -121,6 +129,7 @@ fun ResultScreen(
         }
     }
 }
+
 
 
 

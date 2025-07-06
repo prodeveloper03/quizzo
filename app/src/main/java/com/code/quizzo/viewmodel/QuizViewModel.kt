@@ -31,6 +31,8 @@ class QuizViewModel @Inject constructor(
     val correctAnswers: Int get() = _correctAnswers
 
     private var _currentStreak = 0
+    val currentStreak: Int get() = _currentStreak
+
     private var _highestStreak = 0
     val highestStreak: Int get() = _highestStreak
 
@@ -38,7 +40,7 @@ class QuizViewModel @Inject constructor(
         fetchQuestions()
     }
 
-    private fun fetchQuestions() {
+    fun fetchQuestions() {
         viewModelScope.launch {
             _quizState.value = ApiResponse.Loading
             try {
@@ -62,7 +64,6 @@ class QuizViewModel @Inject constructor(
         }
 
         _currentIndex++
-
         return isLastQuestion()
     }
 
@@ -82,4 +83,3 @@ class QuizViewModel @Inject constructor(
         _highestStreak = 0
     }
 }
-
