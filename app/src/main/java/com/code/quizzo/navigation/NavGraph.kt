@@ -78,6 +78,11 @@ fun NavGraph(navController: NavHostController) {
                     navController.navigate("home") {
                         popUpTo("result") { inclusive = true }
                     }
+                },
+                onClose = {
+                    navController.navigate("home"){
+                        popUpTo("result") { inclusive = true }
+                    }
                 }
             )
         }
